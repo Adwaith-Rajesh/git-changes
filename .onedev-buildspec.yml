@@ -1,0 +1,35 @@
+version: 39
+jobs:
+- name: Upload to Pypi
+  steps:
+  - !CheckoutStep
+    name: Checkout Code
+    cloneCredential: !DefaultCredential {}
+    withLfs: false
+    withSubmodules: false
+    cloneDepth: 1
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  - !CommandStep
+    name: Publish to Pypi
+    runInContainer: true
+    image: python:3.12-bullseye
+    interpreter: !DefaultInterpreter
+      commands: |
+        cat << EOF > $HOME/.pypirc
+        [pypi]
+        username=__token__
+        password=@secret:access-token@
+        EOF
+
+        pip3 install build twine
+        python3 -m build
+        python3 -m twine upload dist/*
+    useTTY: true
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  triggers:
+  - !TagCreateTrigger
+    branches: dev
+  retryCondition: never
+  maxRetries: 3
+  retryDelay: 30
+  timeout: 14400
