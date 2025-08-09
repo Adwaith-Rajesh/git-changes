@@ -70,7 +70,7 @@ def _add_msg_to_file(message: str, type: str) -> str:
 
 def _print_commit_msg() -> None:
     with open(GIT_COMMIT_MSG_FILE, 'r') as f:
-        print(f.read().strip() or 'No commit messages yet!.. To add new message run\ngitc <message> [--type]')
+        print(f.read().strip() or 'No commit messages yet!.. To add new message run\ngit addm -m <message> [--type]')
 
 
 def _reset_commit_msg_file() -> None:
@@ -78,9 +78,7 @@ def _reset_commit_msg_file() -> None:
 
 
 def git_add() -> NoReturn:
-    print(f'{sys.argv=}')
-
-    add_parser = argparse.ArgumentParser(add_help=False)
+    add_parser = argparse.ArgumentParser()
     add_parser.add_argument('-m', '--message', required=True, help='Message to add')
     add_parser.add_argument('--type', choices=COMMIT_TYPES, default='feat', help='The type of the change')
 
@@ -88,7 +86,6 @@ def git_add() -> NoReturn:
     if args.message:
         print(_add_msg_to_file(args.message, args.type))
 
-    print(f'{rest=}')
     os.execvp('git', ('git', 'add', *rest))
 
 
