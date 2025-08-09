@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import argparse
+import configparser
 import os
 import stat
 import sys
 from pathlib import Path
+from typing import NoReturn
 
 
 GIT_DIR = Path('.git')
 GIT_COMMIT_MSG_FILE = GIT_DIR / 'current_message.txt'
-GIT_COMMIT_MSG_FILE_BK = GIT_DIR / 'current_message.txt.bk'
 GIT_POST_COMMIT_FILE = GIT_DIR / 'hooks/post-commit'
+GIT_CONFIG_FILE = GIT_DIR / 'config'
 
 COMMIT_TYPES = [
     'feat',
@@ -34,9 +36,28 @@ def _write_post_commit_file() -> None:
     os.chmod(GIT_POST_COMMIT_FILE, os.stat(GIT_POST_COMMIT_FILE).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
+def _set_aliases() -> None:
+    git_config = configparser.ConfigParser()
+    git_config.read(GIT_CONFIG_FILE)
+
+    if not git_config.has_section('alias'):
+        git_config.add_section('alias')
+    git_config.set('alias', 'addm', '!gitc-add')
+    git_config.set('alias', 'show-messages', '!gitc-show-messages')
+
+    if not git_config.has_section('commit'):
+        git_config.add_section('commit')
+
+    git_config.set('commit', 'template', str(GIT_COMMIT_MSG_FILE))
+
+    with open(GIT_CONFIG_FILE, 'w') as f:
+        git_config.write(f)
+
+
 def _init() -> None:
     GIT_COMMIT_MSG_FILE.touch()
     _write_post_commit_file()
+    _set_aliases()
 
 
 def _add_msg_to_file(message: str, type: str) -> str:
@@ -56,16 +77,32 @@ def _reset_commit_msg_file() -> None:
     GIT_COMMIT_MSG_FILE.write_text('')
 
 
+def git_add() -> NoReturn:
+    print(f'{sys.argv=}')
+
+    add_parser = argparse.ArgumentParser(add_help=False)
+    add_parser.add_argument('-m', '--message', required=True, help='Message to add')
+    add_parser.add_argument('--type', choices=COMMIT_TYPES, default='feat', help='The type of the change')
+
+    args, rest = add_parser.parse_known_args()
+    if args.message:
+        print(_add_msg_to_file(args.message, args.type))
+
+    print(f'{rest=}')
+    os.execvp('git', ('git', 'add', *rest))
+
+
+def show_messages() -> int:
+    _print_commit_msg()
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('message', help='message for the change', nargs='?')
-
     grp = parser.add_mutually_exclusive_group()
-    grp.add_argument('--type', choices=COMMIT_TYPES, default='feat', help='The type of the change')
     grp.add_argument('--init', action='store_true', help='Initialize everything')
-    grp.add_argument('--show-msg', action='store_true', help='Show the current commit message')
-    grp.add_argument('--reset', action='store_true', help='reset commit messages')
+    grp.add_argument('--reset', action='store_true', help='Reset commit messages')
 
     args = parser.parse_args()
 
@@ -75,19 +112,10 @@ def main() -> int:
 
     if args.init:
         _init()
-        os.execvp('git', ('git', 'config', '--local', 'commit.template', GIT_COMMIT_MSG_FILE))
-
-    if args.show_msg:
-        _print_commit_msg()
         return 0
 
     if args.reset:
         _reset_commit_msg_file()
         return 0
-
-    _init()
-
-    if args.message:
-        print(_add_msg_to_file(args.message, args.type))
 
     return 0
