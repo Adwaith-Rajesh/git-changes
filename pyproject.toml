@@ -1,6 +1,6 @@
 [project]
 name = "git-changes"
-version = "0.0.1"
+version = "0.0.2"
 authors = [
     {name="Adwaith-Rajesh", email="me@adwaith.dev"}
 ]
