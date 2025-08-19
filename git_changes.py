@@ -4,9 +4,9 @@ import argparse
 import configparser
 import os
 import stat
+import subprocess
 import sys
 from pathlib import Path
-from typing import NoReturn
 
 
 GIT_DIR = Path('.git')
@@ -77,16 +77,21 @@ def _reset_commit_msg_file() -> None:
     GIT_COMMIT_MSG_FILE.write_text('')
 
 
-def git_add() -> NoReturn:
+def _run_git_add(args: list[str]) -> int:
+    git_add = subprocess.run(['git', 'add', *args])
+    return git_add.returncode
+
+
+def git_add() -> int:
     add_parser = argparse.ArgumentParser()
     add_parser.add_argument('-m', '--message', required=True, help='Message to add')
     add_parser.add_argument('--type', choices=COMMIT_TYPES, default='feat', help='The type of the change')
 
     args, rest = add_parser.parse_known_args()
-    if args.message:
+    if args.message and (_run_git_add(rest) == 0):
         print(_add_msg_to_file(args.message, args.type))
 
-    os.execvp('git', ('git', 'add', *rest))
+    return 0
 
 
 def show_messages() -> int:
