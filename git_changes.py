@@ -26,6 +26,7 @@ COMMIT_TYPES = [
     'ci',
     'chore',
     'revert',
+    'dev',
 ]
 
 
@@ -85,7 +86,7 @@ def _run_git_add(args: list[str]) -> int:
 def git_add() -> int:
     add_parser = argparse.ArgumentParser()
     add_parser.add_argument('-m', '--message', required=True, help='Message to add')
-    add_parser.add_argument('--type', choices=COMMIT_TYPES, default='feat', help='The type of the change')
+    add_parser.add_argument('--type', choices=COMMIT_TYPES, default='dev', help='The type of the change')
 
     args, rest = add_parser.parse_known_args()
     if args.message and (_run_git_add(rest) == 0):
